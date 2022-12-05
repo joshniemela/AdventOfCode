@@ -1,0 +1,8 @@
+name = "day2"
+uuid = "f3bb41f3-8f43-4756-90b0-8f3b45a29cd7"
+authors = ["Joshua Niemelä <josh@jniemela.dk>"]
+version = "0.1.0"
+
+[deps]
+Match = "7eb4fadd-790c-5f42-8a69-bfa0b872bfbf"
+Unzip = "41fe7b60-77ed-43a1-b4f0-825fd5a5650d"
