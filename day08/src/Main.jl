@@ -1,5 +1,3 @@
-using DelimitedFiles
-
 data = split.(readlines("input"), "")
 data = reduce(hcat, map(x -> parse.(Int, x), data))
 
