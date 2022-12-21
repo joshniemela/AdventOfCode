@@ -1,8 +1,9 @@
-using JuMP
-using StaticArrays
-using Chain
-import HiGHS
-struct Blueprint
+using Distributed
+@everywhere using JuMP
+@everywhere using StaticArrays
+@everywhere using Chain
+@everywhere import HiGHS
+@everywhere struct Blueprint
   id          ::Int64
   oreCost     ::SVector{3, Int64}
   clayCost    ::SVector{3, Int64}
@@ -35,7 +36,7 @@ function parseBlueprint(blueprint::String)
 end
 
 
-function maximiseGeodes(blueprint::Blueprint, minutes=24)
+@everywhere function maximiseGeodes(blueprint::Blueprint, minutes=24)
   mining = Model(HiGHS.Optimizer)
   T = 1:minutes+1
   T₋ = 1:minutes
@@ -66,22 +67,14 @@ function maximiseGeodes(blueprint::Blueprint, minutes=24)
   end
   
   for (t₋, t₊) ∈ zip(T₋, T₊)
+    # enumerate
+    for (i, r) ∈ enumerate(R[1:3])
+      @constraint(mining, robots[r, t₋] + resources[r, t₋] == (
+        resources[r, t₊] + 
+        totalCost(blueprint, t₋, i)
+      ))
+    end
     @constraints(mining, begin
-      # Constraint on ore production
-      robots[:ore, t₋] + resources[:ore, t₋] == (
-        resources[:ore, t₊] + 
-        totalCost(blueprint, t₋, 1)
-      )
-      # Constraint on clay production
-      robots[:clay, t₋] + resources[:clay, t₋] == (
-        resources[:clay, t₊] + 
-        totalCost(blueprint, t₋, 2)
-      )
-      # Constraint on obsidian production
-      robots[:obsidian, t₋] + resources[:obsidian, t₋] == (
-        resources[:obsidian, t₊] + 
-        totalCost(blueprint, t₋, 3)
-      )
       # Geode production
       robots[:geode, t₋] + resources[:geode, t₋] == (resources[:geode, t₊])
 
@@ -117,9 +110,9 @@ input = readlines("input")
 
 blueprints = map(parseBlueprint, input)
 
-qualityScore(blueprint::Blueprint) = maximiseGeodes(blueprint) * blueprint.id
+@everywhere qualityScore(blueprint::Blueprint) = maximiseGeodes(blueprint) * blueprint.id
 
-println("Part1: ", round(Int, sum(qualityScore.(blueprints))))
+println("Part1: ", round(Int, sum(pmap(qualityScore, blueprints))))
 
 productOfThreeBest = @chain blueprints begin
   _[1:3]
