@@ -46,7 +46,7 @@ function exposedSides(cubeMat)
     cubeMat = padMatrix(cubeMat)
     POIs = Stack{C₃}()
     visited = Set{C₃}()
-    exposed_faces = 0
+    exposedFaces = 0
     # Initialize the POIs with the origin
     push!(POIs, O₃)
 
@@ -59,10 +59,10 @@ function exposedSides(cubeMat)
         for Δn in neighbours
             nb = cube + Δn
             checkbounds(Bool, cubeMat, nb) || continue
-            cubeMat[nb] ? exposed_faces += 1 : push!(POIs, nb)
+            cubeMat[nb] ? exposedFaces += 1 : push!(POIs, nb)
         end
     end
-    exposed_faces
+    exposedFaces
 end
 
 
