@@ -50,7 +50,6 @@
 
 
 (defn -main []
-  ; first opt is year, second is day
   (let [opts  (cli/parse-opts *command-line-args* cli-options)
         all-years (range 2015 (.getYear (LocalDate/now)))]
     (cond
