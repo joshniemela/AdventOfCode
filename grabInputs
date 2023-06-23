@@ -1,10 +1,10 @@
 #! /usr/bin/env bb
 
 (ns script
-    (:require [babashka.cli :as cli]
-              [clojure.java.io :as io]
-              [clojure.string :as str]
-              [babashka.http-client :as http]))
+  (:require [babashka.cli :as cli]
+            [clojure.java.io :as io]
+            [clojure.string :as str]
+            [babashka.http-client :as http]))
 (import (java.time LocalDate))
 
 (defn zero-pad [n]
@@ -12,10 +12,10 @@
 
 (defn get-input [year day]
   (let [url (str "https://adventofcode.com/" year "/day/" day "/input")]
-     (let [input (http/get url {:headers {"Cookie" (str "session=" (System/getenv "AOC_SESSION"))} :throw false})]
-       (if (= (:status input) 200)
-         (:body input)
-         (println "Error getting input for day" day ": " (:status input))))))
+    (let [input (http/get url {:headers {"Cookie" (str "session=" (System/getenv "AOC_SESSION"))} :throw false})]
+      (if (= (:status input) 200)
+        (:body input)
+        (println "Error getting input for day" day ": " (:status input))))))
 
 
 (defn save-input [year day]
@@ -23,30 +23,30 @@
         filename (str year "/inputs/" (zero-pad day))]
     (when input
       (io/make-parents filename)
-        (spit filename input)
-        (println "Saved input for day:" day "year:" year))))
+      (spit filename input)
+      (println "Saved input for day:" day "year:" year))))
 
 (defn download-and-save-input [year day]
   (let [input (get-input year day)]
     (when input
       (save-input year day))))
-  
+
 (def cli-options {:aliases {:d :day
                             :y :year
                             :h :help
                             :a :all}
                   :spec {:year {:default (.getYear (LocalDate/now))
-                                 :type int
-                                 :doc "The year to download inputs for"}
-                          :day {:default (.getDayOfMonth (LocalDate/now))
                                 :type int
-                                :doc "The day to download inputs for"}
-                          :help {:default false
-                                 :type boolean
-                                 :doc "Prints this help message"}
-                          :all {:default false
+                                :doc "The year to download inputs for"}
+                         :day {:default (.getDayOfMonth (LocalDate/now))
+                               :type int
+                               :doc "The day to download inputs for"}
+                         :help {:default false
                                 :type boolean
-                                :doc "Download all inputs for all years"}}})
+                                :doc "Prints this help message"}
+                         :all {:default false
+                               :type boolean
+                               :doc "Download all inputs for all years"}}})
 
 
 (defn -main []
@@ -55,11 +55,11 @@
     (cond
       (:all opts) (doseq [year all-years]
                     (doseq [day (range 1 25)]
-                      (download-and-save-input year day))) 
+                      (download-and-save-input year day)))
       (:year opts) (if (:day opts)
-                      (download-and-save-input (:year opts) (:day opts))
-                      (doseq [day (range 1 25)]
-                        (download-and-save-input (:year opts) day)))
+                     (download-and-save-input (:year opts) (:day opts))
+                     (doseq [day (range 1 25)]
+                       (download-and-save-input (:year opts) day)))
       (:help opts) (println "Usage: ./grabInputs.clj -y <year> -d <day>"))))
-  
+
 (-main)
