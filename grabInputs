@@ -7,12 +7,6 @@
               [babashka.http-client :as http]))
 (import (java.time LocalDate))
 
-; make a script that grabs all AOC inputs
-; and saves them to a file
-; usage: ./grabInputs.clj <year> <day>
-; example: ./grabInputs.clj 2020 1
-
-; simple script to add a zero to the front of a number if it's less than 10
 (defn zero-pad [n]
   (str (if (< n 10) "0" "") n))
 
@@ -37,12 +31,6 @@
     (when input
       (save-input year day))))
   
-  ; available options:
-  ; -y, --year YEAR
-  ; -d, --day DAY
-  ; -h, --help
-  ; -a, --all
-  ; if only year is provided, all inputs for that year will be downloaded
 (def cli-options {:aliases {:d :day
                             :y :year
                             :h :help
