@@ -1,2 +1,4 @@
 .session
 .envrc
+zig-cache/
+zig-out/
