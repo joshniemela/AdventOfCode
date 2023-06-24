@@ -1,4 +1,6 @@
-open("input") do file
+using BenchmarkTools
+
+@btime open("input") do file
     data = read(file, String)
 
 
