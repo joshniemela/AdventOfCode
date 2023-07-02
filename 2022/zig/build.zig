@@ -60,6 +60,12 @@ pub fn setup_day(
     // running the unit tests.
     const test_step = b.step(b.fmt("test{:0>2}", .{day}), "Run unit tests for a given day");
     test_step.dependOn(&run_unit_tests.step);
+
+    // Adding utils to each day
+    const util = b.addModule("util", .{
+        .source_file = .{ .path = "util.zig" },
+    });
+    exe.addModule("util", util);
 }
 
 // Although this function looks imperative, note that its job is to
