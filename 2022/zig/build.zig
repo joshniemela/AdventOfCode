@@ -77,9 +77,13 @@ pub fn build(b: *std.Build) void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
-    // TODO: automate this
-    const days = [_]u8{1};
-    inline for (days) |day| {
-        setup_day(b, target, optimize, day);
+    const days_dir = fs.cwd().openIterableDir(".", .{}) catch unreachable;
+    var iter_dir = days_dir.iterate();
+    while (iter_dir.next() catch unreachable) |entry| {
+        //std.debug.print("entry: {s}\n", .{entry.name}); //exists for debugging
+        if (std.mem.startsWith(u8, entry.name, "day") and (entry.kind == .directory)) {
+            const day = std.fmt.parseInt(u32, entry.name[3..], 10) catch unreachable;
+            setup_day(b, target, optimize, day);
+        }
     }
 }
