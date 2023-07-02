@@ -13,8 +13,9 @@ pub fn readDayInput(day: u32) ![]const u8 {
     var buf: [16 * kib]u8 = undefined;
     var fba = std.heap.FixedBufferAllocator.init(&buf);
     const allocator = fba.allocator();
+
     // pad day with 0 if needed
-    var path = try std.fmt.allocPrint(allocator, "../../inputs/{:0>2}", .{day});
+    var path = try std.fmt.allocPrint(allocator, "../inputs/{:0>2}", .{day});
     defer allocator.free(path);
     return readFile(path, allocator);
 }
