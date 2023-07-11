@@ -1,7 +1,7 @@
 const std = @import("std");
 const util = @import("util");
 
-pub fn hashFn(char: u8) u8 {
+pub fn priority(char: u8) u8 {
     if (char <= 'Z') {
         return char - 'A' + 26;
     } else {
@@ -15,14 +15,14 @@ pub fn compareRucksacks(ruckSack: []const u8) u32 {
     // put the first half of the rucksack into the uniqueItems array
     var i: u8 = 0;
     while (i < halfLength) {
-        uniqueItems[hashFn(ruckSack[i])] = true;
+        uniqueItems[priority(ruckSack[i])] = true;
         i += 1;
     }
     var matchingSum: u32 = 0;
     // check the second half of the rucksack against the uniqueItems array
     while (i < ruckSack.len) {
-        if (uniqueItems[hashFn(ruckSack[i])]) {
-            matchingSum += hashFn(ruckSack[i]) + 1;
+        if (uniqueItems[priority(ruckSack[i])]) {
+            matchingSum += priority(ruckSack[i]) + 1;
             break;
         }
         i += 1;
