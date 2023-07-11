@@ -28,9 +28,10 @@ pub fn compareRucksacks(ruckSack: []const u8, matches: *[52]bool) u32 {
         i += 1;
     }
     // clear the matches array
-    while (i > 0) {
-        i -= 1;
+    i = 0;
+    while (i < halfLength) {
         matches[priority(ruckSack[i])] = false;
+        i += 1;
     }
 
     return matchingSum;
