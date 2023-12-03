@@ -51,7 +51,7 @@
 
 (defn -main []
   (let [opts  (cli/parse-opts *command-line-args* cli-options)
-        all-years (range 2015 (.getYear (LocalDate/now)))]
+        all-years (range 2019 (.getYear (LocalDate/now)))]
     (cond
       (:all opts) (doseq [year all-years]
                     (doseq [day (range 1 25)]
