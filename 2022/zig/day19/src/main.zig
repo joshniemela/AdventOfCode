@@ -3,7 +3,6 @@ const util = @import("../util.zig");
 const Timer = std.time.Timer;
 
 const State = struct {
-    minutes: u8,
     ore: u8,
     clay: u8,
     obsidian: u8,
@@ -12,6 +11,7 @@ const State = struct {
     clay_bots: u8,
     obsidian_bots: u8,
     geode_bots: u8,
+    minutes: u8,
 
     fn can_build_ore_bot(self: State, bp: *const Blueprint) bool {
         return self.ore >= bp.ore_bot_ore_cost;
@@ -79,7 +79,22 @@ const State = struct {
     }
 };
 
-const StateHashMap = std.AutoHashMap(State, u8);
+//const StateContext = struct {
+//    pub fn hash(_: StateContext, key: State) u64 {
+//        var h = std.hash.Fnv32a.init();
+//        h.update(key);
+//        return h.final();
+//    }
+//
+//    pub fn eql(_: StateContext, a: State, b: State) bool {
+//        // check if they look the same when cast to 64
+//        const a64: u64 = @bitCast(a);
+//        const b64: u64 = @bitCast(b);
+//        return a64 == b64;
+//    }
+//};
+
+const StateHashMap = std.HashMap(State, u8, std.hash_map.AutoContext(State), std.hash_map.default_max_load_percentage);
 
 const Blueprint = struct {
     ore_bot_ore_cost: u8,
