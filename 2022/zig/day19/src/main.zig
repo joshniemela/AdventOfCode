@@ -2,7 +2,7 @@ const std = @import("std");
 const util = @import("../util.zig");
 const Timer = std.time.Timer;
 
-const State = struct {
+const Resources = packed struct {
     ore: u8,
     clay: u8,
     obsidian: u8,
@@ -11,58 +11,64 @@ const State = struct {
     clay_bots: u8,
     obsidian_bots: u8,
     geode_bots: u8,
+};
+
+const State = struct {
+    resources: Resources,
     minutes: u8,
 
     fn can_build_ore_bot(self: State, bp: *const Blueprint) bool {
-        return self.ore >= bp.ore_bot_ore_cost;
+        return self.resources.ore >= bp.ore_bot_ore_cost;
     }
     fn can_build_clay_bot(self: State, bp: *const Blueprint) bool {
-        return self.ore >= bp.clay_bot_ore_cost;
+        return self.resources.ore >= bp.clay_bot_ore_cost;
     }
     fn can_build_obsidian_bot(self: State, bp: *const Blueprint) bool {
-        return self.ore >= bp.obsidian_bot_ore_cost and self.clay >= bp.obsidian_bot_clay_cost;
+        return self.resources.ore >= bp.obsidian_bot_ore_cost and
+            self.resources.clay >= bp.obsidian_bot_clay_cost;
     }
     fn can_build_geode_bot(self: State, bp: *const Blueprint) bool {
-        return self.ore >= bp.geode_bot_ore_cost and self.obsidian >= bp.geode_bot_obsidian_cost;
+        return self.resources.ore >= bp.geode_bot_ore_cost and
+            self.resources.obsidian >= bp.geode_bot_obsidian_cost;
     }
 
     fn build_ore_bot(self: State, bp: *const Blueprint) State {
         var new_state = self;
-        new_state.ore -= bp.ore_bot_ore_cost;
-        new_state.ore_bots += 1;
+        new_state.resources.ore -= bp.ore_bot_ore_cost;
+        new_state.resources.ore_bots += 1;
         return new_state;
     }
 
     fn build_clay_bot(self: State, bp: *const Blueprint) State {
         var new_state = self;
-        new_state.ore -= bp.clay_bot_ore_cost;
-        new_state.clay_bots += 1;
+        new_state.resources.ore -= bp.clay_bot_ore_cost;
+        new_state.resources.clay_bots += 1;
         return new_state;
     }
 
     fn build_obsidian_bot(self: State, bp: *const Blueprint) State {
         var new_state = self;
-        new_state.ore -= bp.obsidian_bot_ore_cost;
-        new_state.clay -= bp.obsidian_bot_clay_cost;
-        new_state.obsidian_bots += 1;
+        new_state.resources.ore -= bp.obsidian_bot_ore_cost;
+        new_state.resources.clay -= bp.obsidian_bot_clay_cost;
+        new_state.resources.obsidian_bots += 1;
         return new_state;
     }
 
     fn build_geode_bot(self: State, bp: *const Blueprint) State {
         var new_state = self;
-        new_state.ore -= bp.geode_bot_ore_cost;
-        new_state.obsidian -= bp.geode_bot_obsidian_cost;
-        new_state.geode_bots += 1;
+        new_state.resources.ore -= bp.geode_bot_ore_cost;
+        new_state.resources.obsidian -= bp.geode_bot_obsidian_cost;
+        new_state.resources.geode_bots += 1;
         return new_state;
     }
 
     fn step(self: State) State {
         var new_state = self;
         new_state.minutes += 1;
-        new_state.ore += self.ore_bots;
-        new_state.clay += self.clay_bots;
-        new_state.obsidian += self.obsidian_bots;
-        new_state.geodes += self.geode_bots;
+        new_state.resources.ore += self.resources.ore_bots;
+        new_state.resources.clay += self.resources.clay_bots;
+        new_state.resources.obsidian += self.resources.obsidian_bots;
+        new_state.resources.geodes += self.resources.geode_bots;
         return new_state;
     }
 
@@ -75,7 +81,7 @@ const State = struct {
         if (time_left >= 16) {
             return 255;
         }
-        return self.geodes + self.geode_bots * time_left + time_left * (time_left - 1) / 2;
+        return self.resources.geodes + self.resources.geode_bots * time_left + time_left * (time_left - 1) / 2;
     }
 };
 
@@ -94,7 +100,11 @@ const State = struct {
 //    }
 //};
 
-const StateHashMap = std.HashMap(State, u8, std.hash_map.AutoContext(State), std.hash_map.default_max_load_percentage);
+const GemMinutes = struct {
+    geodes: u8,
+    minutes: u8,
+};
+const StateHashMap = std.HashMap(Resources, GemMinutes, std.hash_map.AutoContext(Resources), std.hash_map.default_max_load_percentage);
 
 const Blueprint = struct {
     ore_bot_ore_cost: u8,
@@ -108,7 +118,7 @@ const Blueprint = struct {
 pub fn solution(state: State, bp: *const Blueprint, minutes_limit: u8, memo: *StateHashMap, best_geodes: *u8) !u8 {
     // If we have reached the time limit, return the number of geodes we have
     if (state.minutes >= minutes_limit) {
-        return state.geodes;
+        return state.resources.geodes;
     }
     // No matter what, this state cannot exceed the upper bound of geode and can be discarded
     if (state.upper_bound_geodes(minutes_limit) <= best_geodes.*) {
@@ -116,12 +126,16 @@ pub fn solution(state: State, bp: *const Blueprint, minutes_limit: u8, memo: *St
     }
 
     // If it is in the cache, return the result
-    if (memo.contains(state)) {
-        return memo.get(state).?;
+    if (memo.contains(state.resources)) {
+        const memo_res = memo.get(state.resources).?;
+        // If the result from cache reached the same state faster or equally as fast, return the result
+        if (memo_res.minutes <= state.minutes) {
+            return memo_res.geodes;
+        }
     }
 
     // Find the maximum number of geodes that can be made by searching all options
-    var max_geodes = state.geodes;
+    var max_geodes = state.resources.geodes;
     if (state.can_build_geode_bot(bp)) {
         max_geodes = @max(max_geodes, try solution(state.step().build_geode_bot(bp), bp, minutes_limit, memo, best_geodes));
     }
@@ -136,7 +150,7 @@ pub fn solution(state: State, bp: *const Blueprint, minutes_limit: u8, memo: *St
     }
     max_geodes = @max(max_geodes, try solution(state.step(), bp, minutes_limit, memo, best_geodes));
 
-    try memo.put(state, max_geodes);
+    try memo.put(state.resources, GemMinutes{ .geodes = max_geodes, .minutes = state.minutes });
 
     if (max_geodes > best_geodes.*) {
         best_geodes.* = max_geodes;
@@ -174,8 +188,7 @@ test "test util" {
     };
     const expected = 9;
 
-    const starting_state = State{
-        .minutes = 0,
+    const starting_resources = Resources{
         .ore = 0,
         .clay = 0,
         .obsidian = 0,
@@ -184,6 +197,11 @@ test "test util" {
         .clay_bots = 0,
         .obsidian_bots = 0,
         .geode_bots = 0,
+    };
+
+    const starting_state = State{
+        .minutes = 0,
+        .resources = starting_resources,
     };
 
     var memo = StateHashMap.init(allocator);
