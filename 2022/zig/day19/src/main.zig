@@ -7,10 +7,10 @@ const Resources = packed struct {
     clay: u8,
     obsidian: u8,
     geodes: u8,
-    ore_bots: u8,
-    clay_bots: u8,
-    obsidian_bots: u8,
-    geode_bots: u8,
+    ore_bots: u4,
+    clay_bots: u4,
+    obsidian_bots: u4,
+    geode_bots: u4,
 };
 
 const Blueprint = struct {
@@ -54,6 +54,8 @@ const MayBuild = struct {
         };
     }
 };
+
+var states_hit: u64 = 0;
 
 const State = struct {
     resources: Resources,
@@ -131,7 +133,9 @@ const State = struct {
         if (time_left >= 16) {
             return 255;
         }
-        return self.resources.geodes + self.resources.geode_bots * time_left + time_left * (time_left - 1) / 2;
+        return self.resources.geodes +
+            self.resources.geode_bots * time_left +
+            time_left * (time_left - 1) / 2;
     }
 
     fn allow_all_builds(self: State) State {
@@ -202,6 +206,7 @@ pub fn solution(state: State, bp: *const Blueprint, minutes_limit: u8, memo: *St
     if (max_geodes > best_geodes.*) {
         best_geodes.* = max_geodes;
     }
+    states_hit += 1;
     return max_geodes;
 }
 
@@ -260,7 +265,8 @@ test "test util" {
     const best_geodes: *u8 = &temp;
     const result = solution(starting_state, &testBlueprint, 24, &memo, best_geodes);
     // read and print in seconds (it starts as nano seconds)
-    const elapsed = timer.read() / 1_000_000;
-    std.debug.print("Elapsed: {} ms\n", .{elapsed});
+    const elapsed = timer.read() / 1_000;
+    std.debug.print("Elapsed: {} µs\n", .{elapsed});
+    std.debug.print("States hit: {}\n", .{states_hit});
     try std.testing.expectEqual(expected, result);
 }
