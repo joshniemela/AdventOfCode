@@ -113,6 +113,7 @@ blueprints = map(parseBlueprint, input)
 @everywhere qualityScore(blueprint::Blueprint) = maximiseGeodes(blueprint) * blueprint.id
 
 println("Part1: ", round(Int, sum(pmap(qualityScore, blueprints))))
+# Takes on average 7.796 seconds to run with 67MiB of memory
 
 productOfThreeBest = @chain blueprints begin
   _[1:3]
