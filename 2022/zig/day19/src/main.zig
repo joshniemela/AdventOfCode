@@ -13,11 +13,46 @@ const Resources = packed struct {
     geode_bots: u8,
 };
 
+const Blueprint = struct {
+    ore_bot_ore_cost: u8,
+    clay_bot_ore_cost: u8,
+    obsidian_bot_ore_cost: u8,
+    obsidian_bot_clay_cost: u8,
+    geode_bot_ore_cost: u8,
+    geode_bot_obsidian_cost: u8,
+};
+
 const MayBuild = struct {
     ore_bot: bool,
     clay_bot: bool,
     obsidian_bot: bool,
     geode_bot: bool,
+    max_ore_bots: u8,
+    max_clay_bots: u8,
+    max_obsidian_bots: u8,
+    fn new(bp: *const Blueprint) MayBuild {
+        // The max amount of bots to build is the one where any bot can be made in 1 turn
+        var max_ore_cost: u8 = 0;
+        var max_clay_cost: u8 = 0;
+        var max_obsidian_cost: u8 = 0;
+        max_ore_cost = @max(max_ore_cost, bp.ore_bot_ore_cost);
+        max_ore_cost = @max(max_ore_cost, bp.clay_bot_ore_cost);
+        max_ore_cost = @max(max_ore_cost, bp.obsidian_bot_ore_cost);
+        max_ore_cost = @max(max_ore_cost, bp.geode_bot_ore_cost);
+        max_clay_cost = @max(max_clay_cost, bp.obsidian_bot_clay_cost);
+        max_obsidian_cost = @max(max_obsidian_cost, bp.geode_bot_obsidian_cost);
+
+        return MayBuild{
+            .ore_bot = true,
+            .clay_bot = true,
+            .obsidian_bot = true,
+            .geode_bot = true,
+            .max_ore_bots = max_ore_cost,
+            .max_clay_bots = max_clay_cost,
+            .max_obsidian_bots = max_obsidian_cost,
+            // No cap on geode bots
+        };
+    }
 };
 
 const State = struct {
@@ -26,14 +61,17 @@ const State = struct {
     minutes: u8,
 
     fn can_build_ore_bot(self: State, bp: *const Blueprint) bool {
-        return self.resources.ore >= bp.ore_bot_ore_cost;
+        return self.resources.ore >= bp.ore_bot_ore_cost and
+            self.resources.ore_bots < self.buildable.max_ore_bots;
     }
     fn can_build_clay_bot(self: State, bp: *const Blueprint) bool {
-        return self.resources.ore >= bp.clay_bot_ore_cost;
+        return self.resources.ore >= bp.clay_bot_ore_cost and
+            self.resources.clay_bots < self.buildable.max_clay_bots;
     }
     fn can_build_obsidian_bot(self: State, bp: *const Blueprint) bool {
         return self.resources.ore >= bp.obsidian_bot_ore_cost and
-            self.resources.clay >= bp.obsidian_bot_clay_cost;
+            self.resources.clay >= bp.obsidian_bot_clay_cost and
+            self.resources.obsidian_bots < self.buildable.max_obsidian_bots;
     }
     fn can_build_geode_bot(self: State, bp: *const Blueprint) bool {
         return self.resources.ore >= bp.geode_bot_ore_cost and
@@ -113,15 +151,6 @@ const GemMinutes = struct {
     minutes: u8,
 };
 const StateHashMap = std.HashMap(Resources, GemMinutes, std.hash_map.AutoContext(Resources), std.hash_map.default_max_load_percentage);
-
-const Blueprint = struct {
-    ore_bot_ore_cost: u8,
-    clay_bot_ore_cost: u8,
-    obsidian_bot_ore_cost: u8,
-    obsidian_bot_clay_cost: u8,
-    geode_bot_ore_cost: u8,
-    geode_bot_obsidian_cost: u8,
-};
 
 pub fn solution(state: State, bp: *const Blueprint, minutes_limit: u8, memo: *StateHashMap, best_geodes: *u8) !u8 {
     // If we have reached the time limit, return the number of geodes we have
@@ -208,12 +237,7 @@ test "test util" {
         .geode_bots = 0,
     };
 
-    const starting_buildable = MayBuild{
-        .ore_bot = true,
-        .clay_bot = true,
-        .obsidian_bot = true,
-        .geode_bot = true,
-    };
+    const starting_buildable = MayBuild.new(&testBlueprint);
 
     const starting_state = State{
         .minutes = 0,
