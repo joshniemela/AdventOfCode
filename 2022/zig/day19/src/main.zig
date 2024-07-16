@@ -91,6 +91,7 @@ const Blueprint = struct {
 };
 
 pub fn solution(state: State, bp: *const Blueprint, minutes_limit: u8, memo: *StateHashMap, best_geodes: *u8) !u8 {
+    // If we have reached the time limit, return the number of geodes we have
     if (state.minutes >= minutes_limit) {
         return state.geodes;
     }
@@ -98,10 +99,13 @@ pub fn solution(state: State, bp: *const Blueprint, minutes_limit: u8, memo: *St
     if (state.upper_bound_geodes(minutes_limit) <= best_geodes.*) {
         return 0;
     }
+
+    // If it is in the cache, return the result
     if (memo.contains(state)) {
         return memo.get(state).?;
     }
-    // Find the maximum number of geodes that can be made
+
+    // Find the maximum number of geodes that can be made by searching all options
     var max_geodes = state.geodes;
     if (state.can_build_geode_bot(bp)) {
         max_geodes = @max(max_geodes, try solution(state.step().build_geode_bot(bp), bp, minutes_limit, memo, best_geodes));
