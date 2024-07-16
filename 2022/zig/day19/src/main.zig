@@ -62,20 +62,24 @@ const State = struct {
 
     fn can_build_ore_bot(self: State, bp: *const Blueprint) bool {
         return self.resources.ore >= bp.ore_bot_ore_cost and
-            self.resources.ore_bots < self.buildable.max_ore_bots;
+            self.resources.ore_bots < self.buildable.max_ore_bots and
+            self.buildable.ore_bot;
     }
     fn can_build_clay_bot(self: State, bp: *const Blueprint) bool {
         return self.resources.ore >= bp.clay_bot_ore_cost and
-            self.resources.clay_bots < self.buildable.max_clay_bots;
+            self.resources.clay_bots < self.buildable.max_clay_bots and
+            self.buildable.clay_bot;
     }
     fn can_build_obsidian_bot(self: State, bp: *const Blueprint) bool {
         return self.resources.ore >= bp.obsidian_bot_ore_cost and
             self.resources.clay >= bp.obsidian_bot_clay_cost and
-            self.resources.obsidian_bots < self.buildable.max_obsidian_bots;
+            self.resources.obsidian_bots < self.buildable.max_obsidian_bots and
+            self.buildable.obsidian_bot;
     }
     fn can_build_geode_bot(self: State, bp: *const Blueprint) bool {
         return self.resources.ore >= bp.geode_bot_ore_cost and
-            self.resources.obsidian >= bp.geode_bot_obsidian_cost;
+            self.resources.obsidian >= bp.geode_bot_obsidian_cost and
+            self.buildable.geode_bot;
     }
 
     fn build_ore_bot(self: State, bp: *const Blueprint) State {
@@ -129,22 +133,25 @@ const State = struct {
         }
         return self.resources.geodes + self.resources.geode_bots * time_left + time_left * (time_left - 1) / 2;
     }
-};
 
-//const StateContext = struct {
-//    pub fn hash(_: StateContext, key: State) u64 {
-//        var h = std.hash.Fnv32a.init();
-//        h.update(key);
-//        return h.final();
-//    }
-//
-//    pub fn eql(_: StateContext, a: State, b: State) bool {
-//        // check if they look the same when cast to 64
-//        const a64: u64 = @bitCast(a);
-//        const b64: u64 = @bitCast(b);
-//        return a64 == b64;
-//    }
-//};
+    fn allow_all_builds(self: State) State {
+        var new_state = self;
+        new_state.buildable.ore_bot = true;
+        new_state.buildable.clay_bot = true;
+        new_state.buildable.obsidian_bot = true;
+        new_state.buildable.geode_bot = true;
+        return new_state;
+    }
+
+    fn update_builds(self: State, ore: bool, clay: bool, obsidian: bool, geode: bool) State {
+        var new_state = self;
+        new_state.buildable.ore_bot = ore;
+        new_state.buildable.clay_bot = clay;
+        new_state.buildable.obsidian_bot = obsidian;
+        new_state.buildable.geode_bot = geode;
+        return new_state;
+    }
+};
 
 const GemMinutes = struct {
     geodes: u8,
@@ -162,33 +169,35 @@ pub fn solution(state: State, bp: *const Blueprint, minutes_limit: u8, memo: *St
         return 0;
     }
 
-    // If it is in the cache, return the result
-    if (memo.contains(state.resources)) {
-        const memo_res = memo.get(state.resources).?;
-        // If the result from cache reached the same state faster or equally as fast, return the result
-        // this is becasue the current state is just a slower way to reach the same cache result
-        if (memo_res.minutes <= state.minutes) {
-            return memo_res.geodes;
-        }
-    }
-
     // Find the maximum number of geodes that can be made by searching all options
     var max_geodes = state.resources.geodes;
-    if (state.can_build_geode_bot(bp)) {
-        max_geodes = @max(max_geodes, try solution(state.step().build_geode_bot(bp), bp, minutes_limit, memo, best_geodes));
-    }
-    if (state.can_build_obsidian_bot(bp)) {
-        max_geodes = @max(max_geodes, try solution(state.step().build_obsidian_bot(bp), bp, minutes_limit, memo, best_geodes));
-    }
-    if (state.can_build_clay_bot(bp)) {
-        max_geodes = @max(max_geodes, try solution(state.step().build_clay_bot(bp), bp, minutes_limit, memo, best_geodes));
-    }
-    if (state.can_build_ore_bot(bp)) {
-        max_geodes = @max(max_geodes, try solution(state.step().build_ore_bot(bp), bp, minutes_limit, memo, best_geodes));
-    }
-    max_geodes = @max(max_geodes, try solution(state.step(), bp, minutes_limit, memo, best_geodes));
 
-    try memo.put(state.resources, GemMinutes{ .geodes = max_geodes, .minutes = state.minutes });
+    // Each of the "can" checks check if we were able to build this bot previously without building anything else,
+    // if so then it would have always been better to build this bot first instead of waiting
+    var can_build_geode: bool = state.buildable.geode_bot;
+    if (state.can_build_geode_bot(bp)) {
+        can_build_geode = false;
+        max_geodes = @max(max_geodes, try solution(state.step().build_geode_bot(bp).allow_all_builds(), bp, minutes_limit, memo, best_geodes));
+    }
+
+    var can_build_obsidian: bool = state.buildable.obsidian_bot;
+    if (state.can_build_obsidian_bot(bp)) {
+        can_build_obsidian = false;
+        max_geodes = @max(max_geodes, try solution(state.step().build_obsidian_bot(bp).allow_all_builds(), bp, minutes_limit, memo, best_geodes));
+    }
+
+    var can_build_clay: bool = state.buildable.clay_bot;
+    if (state.can_build_clay_bot(bp)) {
+        can_build_clay = false;
+        max_geodes = @max(max_geodes, try solution(state.step().build_clay_bot(bp).allow_all_builds(), bp, minutes_limit, memo, best_geodes));
+    }
+
+    var can_build_ore: bool = state.buildable.ore_bot;
+    if (state.can_build_ore_bot(bp)) {
+        can_build_ore = false;
+        max_geodes = @max(max_geodes, try solution(state.step().build_ore_bot(bp).allow_all_builds(), bp, minutes_limit, memo, best_geodes));
+    }
+    max_geodes = @max(max_geodes, try solution(state.step().update_builds(can_build_ore, can_build_clay, can_build_obsidian, can_build_geode), bp, minutes_limit, memo, best_geodes));
 
     if (max_geodes > best_geodes.*) {
         best_geodes.* = max_geodes;
