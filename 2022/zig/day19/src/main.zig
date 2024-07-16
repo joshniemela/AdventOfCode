@@ -86,30 +86,38 @@ const Blueprint = struct {
     geode_bot_obsidian_cost: u32,
 };
 
-pub fn solution(state: State, bp: *const Blueprint, minutes_limit: u32, memo: *StateHashMap) !u32 {
-    if (memo.contains(state)) {
-        return memo.get(state).?;
-    }
+pub fn solution(state: State, bp: *const Blueprint, minutes_limit: u32, memo: *StateHashMap, best_geodes: *u32) !u32 {
     if (state.minutes >= minutes_limit) {
         return state.geodes;
+    }
+    // No matter what, this state cannot exceed the upper bound of geode and can be discarded
+    if (state.upper_bound_geodes(minutes_limit) <= best_geodes.*) {
+        return 0;
+    }
+    if (memo.contains(state)) {
+        return memo.get(state).?;
     }
     // Find the maximum number of geodes that can be made
     var max_geodes = state.geodes;
     if (state.can_build_geode_bot(bp)) {
-        max_geodes = @max(max_geodes, try solution(state.step().build_geode_bot(bp), bp, minutes_limit, memo));
+        max_geodes = @max(max_geodes, try solution(state.step().build_geode_bot(bp), bp, minutes_limit, memo, best_geodes));
     }
     if (state.can_build_obsidian_bot(bp)) {
-        max_geodes = @max(max_geodes, try solution(state.step().build_obsidian_bot(bp), bp, minutes_limit, memo));
+        max_geodes = @max(max_geodes, try solution(state.step().build_obsidian_bot(bp), bp, minutes_limit, memo, best_geodes));
     }
     if (state.can_build_clay_bot(bp)) {
-        max_geodes = @max(max_geodes, try solution(state.step().build_clay_bot(bp), bp, minutes_limit, memo));
+        max_geodes = @max(max_geodes, try solution(state.step().build_clay_bot(bp), bp, minutes_limit, memo, best_geodes));
     }
     if (state.can_build_ore_bot(bp)) {
-        max_geodes = @max(max_geodes, try solution(state.step().build_ore_bot(bp), bp, minutes_limit, memo));
+        max_geodes = @max(max_geodes, try solution(state.step().build_ore_bot(bp), bp, minutes_limit, memo, best_geodes));
     }
-    max_geodes = @max(max_geodes, try solution(state.step(), bp, minutes_limit, memo));
+    max_geodes = @max(max_geodes, try solution(state.step(), bp, minutes_limit, memo, best_geodes));
 
     try memo.put(state, max_geodes);
+
+    if (max_geodes > best_geodes.*) {
+        best_geodes.* = max_geodes;
+    }
     return max_geodes;
 }
 
@@ -156,8 +164,10 @@ test "test util" {
     };
 
     var memo = StateHashMap.init(allocator);
+    var temp: u32 = 0;
 
-    const result = solution(starting_state, &testBlueprint, 24, &memo);
+    const best_geodes: *u32 = &temp;
+    const result = solution(starting_state, &testBlueprint, 24, &memo, best_geodes);
     // read and print in seconds (it starts as nano seconds)
     const elapsed = timer.read() / 1_000_000;
     std.debug.print("Elapsed: {} ms\n", .{elapsed});
