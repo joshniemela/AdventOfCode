@@ -130,7 +130,7 @@ const State = struct {
         // plus the number of geodes that can be made by the existing geode bots,
         // plus the number of geodes that can be made by future geode bots assuming one is made each minute.
         // If we are further than 16 minutes away, we assume at most 255 geodes can be made.
-        if (time_left >= 16) {
+        if (time_left >= 7) {
             return 255;
         }
         return self.resources.geodes +
@@ -161,9 +161,8 @@ const GemMinutes = struct {
     geodes: u8,
     minutes: u8,
 };
-const StateHashMap = std.HashMap(Resources, GemMinutes, std.hash_map.AutoContext(Resources), std.hash_map.default_max_load_percentage);
 
-pub fn solution(state: State, bp: *const Blueprint, minutes_limit: u8, memo: *StateHashMap, best_geodes: *u8) !u8 {
+pub fn solution(state: State, bp: *const Blueprint, minutes_limit: u8, best_geodes: *u8) !u8 {
     // If we have reached the time limit, return the number of geodes we have
     if (state.minutes >= minutes_limit) {
         return state.resources.geodes;
@@ -181,27 +180,27 @@ pub fn solution(state: State, bp: *const Blueprint, minutes_limit: u8, memo: *St
     var can_build_geode: bool = state.buildable.geode_bot;
     if (state.can_build_geode_bot(bp)) {
         can_build_geode = false;
-        max_geodes = @max(max_geodes, try solution(state.step().build_geode_bot(bp).allow_all_builds(), bp, minutes_limit, memo, best_geodes));
+        max_geodes = @max(max_geodes, try solution(state.step().build_geode_bot(bp).allow_all_builds(), bp, minutes_limit, best_geodes));
     }
 
     var can_build_obsidian: bool = state.buildable.obsidian_bot;
     if (state.can_build_obsidian_bot(bp)) {
         can_build_obsidian = false;
-        max_geodes = @max(max_geodes, try solution(state.step().build_obsidian_bot(bp).allow_all_builds(), bp, minutes_limit, memo, best_geodes));
+        max_geodes = @max(max_geodes, try solution(state.step().build_obsidian_bot(bp).allow_all_builds(), bp, minutes_limit, best_geodes));
     }
 
     var can_build_clay: bool = state.buildable.clay_bot;
     if (state.can_build_clay_bot(bp)) {
         can_build_clay = false;
-        max_geodes = @max(max_geodes, try solution(state.step().build_clay_bot(bp).allow_all_builds(), bp, minutes_limit, memo, best_geodes));
+        max_geodes = @max(max_geodes, try solution(state.step().build_clay_bot(bp).allow_all_builds(), bp, minutes_limit, best_geodes));
     }
 
     var can_build_ore: bool = state.buildable.ore_bot;
     if (state.can_build_ore_bot(bp)) {
         can_build_ore = false;
-        max_geodes = @max(max_geodes, try solution(state.step().build_ore_bot(bp).allow_all_builds(), bp, minutes_limit, memo, best_geodes));
+        max_geodes = @max(max_geodes, try solution(state.step().build_ore_bot(bp).allow_all_builds(), bp, minutes_limit, best_geodes));
     }
-    max_geodes = @max(max_geodes, try solution(state.step().update_builds(can_build_ore, can_build_clay, can_build_obsidian, can_build_geode), bp, minutes_limit, memo, best_geodes));
+    max_geodes = @max(max_geodes, try solution(state.step().update_builds(can_build_ore, can_build_clay, can_build_obsidian, can_build_geode), bp, minutes_limit, best_geodes));
 
     if (max_geodes > best_geodes.*) {
         best_geodes.* = max_geodes;
@@ -227,7 +226,6 @@ pub fn main() !void {
 }
 
 test "test util" {
-    const allocator = std.heap.page_allocator;
     var timer = try Timer.start();
 
     const testBlueprint = Blueprint{
@@ -259,11 +257,10 @@ test "test util" {
         .buildable = starting_buildable,
     };
 
-    var memo = StateHashMap.init(allocator);
     var temp: u8 = 0;
 
     const best_geodes: *u8 = &temp;
-    const result = solution(starting_state, &testBlueprint, 24, &memo, best_geodes);
+    const result = solution(starting_state, &testBlueprint, 24, best_geodes);
     // read and print in seconds (it starts as nano seconds)
     const elapsed = timer.read() / 1_000;
     std.debug.print("Elapsed: {} µs\n", .{elapsed});
