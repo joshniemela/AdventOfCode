@@ -13,8 +13,16 @@ const Resources = packed struct {
     geode_bots: u8,
 };
 
+const MayBuild = struct {
+    ore_bot: bool,
+    clay_bot: bool,
+    obsidian_bot: bool,
+    geode_bot: bool,
+};
+
 const State = struct {
     resources: Resources,
+    buildable: MayBuild,
     minutes: u8,
 
     fn can_build_ore_bot(self: State, bp: *const Blueprint) bool {
@@ -129,6 +137,7 @@ pub fn solution(state: State, bp: *const Blueprint, minutes_limit: u8, memo: *St
     if (memo.contains(state.resources)) {
         const memo_res = memo.get(state.resources).?;
         // If the result from cache reached the same state faster or equally as fast, return the result
+        // this is becasue the current state is just a slower way to reach the same cache result
         if (memo_res.minutes <= state.minutes) {
             return memo_res.geodes;
         }
@@ -199,9 +208,17 @@ test "test util" {
         .geode_bots = 0,
     };
 
+    const starting_buildable = MayBuild{
+        .ore_bot = true,
+        .clay_bot = true,
+        .obsidian_bot = true,
+        .geode_bot = true,
+    };
+
     const starting_state = State{
         .minutes = 0,
         .resources = starting_resources,
+        .buildable = starting_buildable,
     };
 
     var memo = StateHashMap.init(allocator);
