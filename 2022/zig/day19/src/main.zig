@@ -3,15 +3,15 @@ const util = @import("../util.zig");
 const Timer = std.time.Timer;
 
 const State = struct {
-    minutes: u32,
-    ore: u32,
-    clay: u32,
-    obsidian: u32,
-    geodes: u32,
-    ore_bots: u32,
-    clay_bots: u32,
-    obsidian_bots: u32,
-    geode_bots: u32,
+    minutes: u8,
+    ore: u8,
+    clay: u8,
+    obsidian: u8,
+    geodes: u8,
+    ore_bots: u8,
+    clay_bots: u8,
+    obsidian_bots: u8,
+    geode_bots: u8,
 
     fn can_build_ore_bot(self: State, bp: *const Blueprint) bool {
         return self.ore >= bp.ore_bot_ore_cost;
@@ -66,27 +66,31 @@ const State = struct {
         return new_state;
     }
 
-    fn upper_bound_geodes(self: State, minutes_limit: u32) u32 {
+    fn upper_bound_geodes(self: State, minutes_limit: u8) u8 {
         const time_left = minutes_limit - self.minutes;
         // The bound is the current number of geodes,
         // plus the number of geodes that can be made by the existing geode bots,
         // plus the number of geodes that can be made by future geode bots assuming one is made each minute.
+        // If we are further than 16 minutes away, we assume at most 255 geodes can be made.
+        if (time_left >= 16) {
+            return 255;
+        }
         return self.geodes + self.geode_bots * time_left + time_left * (time_left - 1) / 2;
     }
 };
 
-const StateHashMap = std.AutoHashMap(State, u32);
+const StateHashMap = std.AutoHashMap(State, u8);
 
 const Blueprint = struct {
-    ore_bot_ore_cost: u32,
-    clay_bot_ore_cost: u32,
-    obsidian_bot_ore_cost: u32,
-    obsidian_bot_clay_cost: u32,
-    geode_bot_ore_cost: u32,
-    geode_bot_obsidian_cost: u32,
+    ore_bot_ore_cost: u8,
+    clay_bot_ore_cost: u8,
+    obsidian_bot_ore_cost: u8,
+    obsidian_bot_clay_cost: u8,
+    geode_bot_ore_cost: u8,
+    geode_bot_obsidian_cost: u8,
 };
 
-pub fn solution(state: State, bp: *const Blueprint, minutes_limit: u32, memo: *StateHashMap, best_geodes: *u32) !u32 {
+pub fn solution(state: State, bp: *const Blueprint, minutes_limit: u8, memo: *StateHashMap, best_geodes: *u8) !u8 {
     if (state.minutes >= minutes_limit) {
         return state.geodes;
     }
@@ -164,9 +168,9 @@ test "test util" {
     };
 
     var memo = StateHashMap.init(allocator);
-    var temp: u32 = 0;
+    var temp: u8 = 0;
 
-    const best_geodes: *u32 = &temp;
+    const best_geodes: *u8 = &temp;
     const result = solution(starting_state, &testBlueprint, 24, &memo, best_geodes);
     // read and print in seconds (it starts as nano seconds)
     const elapsed = timer.read() / 1_000_000;
