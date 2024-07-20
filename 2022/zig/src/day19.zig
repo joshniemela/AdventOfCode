@@ -149,6 +149,9 @@ const State = struct {
         // plus the number of geodes that can be made by the existing geode bots,
         // plus the number of geodes that can be made by future geode bots assuming one is made each minute.
         // If we are further than 16 minutes away, we assume at most 255 geodes can be made.
+        if (time_left > 16) {
+            return self.resources.geodes + 255;
+        }
         return self.resources.geodes +
             time_left * (time_left - 1) / 2;
     }
