@@ -18,12 +18,15 @@ pub fn build(b: *std.Build) void {
     var day: u8 = 1;
     while (day <= 25) : (day += 1) {
         const dayString = b.fmt("day{:0>2}", .{day});
-        const sourceFile = b.fmt("src/{s}.zig", .{dayString});
+        const sourceDir = b.fmt("src/{s}", .{dayString});
+        const sourceFile = b.fmt("{s}/main.zig", .{sourceDir});
         // If the sourceFile does not exist, then we skip
-        const readResult = std.fs.cwd().access(sourceFile, .{});
-        if (readResult == error.FileNotFound) {
+        var cwd = std.fs.cwd().openDir(".", .{ .access_sub_paths = true }) catch {
+            std.debug.print("Failed to open current directory\n", .{});
             continue;
-        }
+        };
+        const dayDir = cwd.openDir(dayString, .{ .access_sub_paths = true }) catch continue;
+        _ = dayDir;
 
         const exe = b.addExecutable(.{
             .name = "zig",
@@ -31,6 +34,10 @@ pub fn build(b: *std.Build) void {
             .target = target,
             .optimize = optimize,
         });
+
+        exe.root_module.addImport("util", b.createModule(.{
+            .root_source_file = b.path("src/util.zig"),
+        }));
 
         // This declares intent for the executable to be installed into the
         // standard location when the user invokes the "install" step (the default

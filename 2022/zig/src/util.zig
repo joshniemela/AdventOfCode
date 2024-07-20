@@ -15,7 +15,7 @@ pub fn readDayInput(day: u32) ![]const u8 {
     const allocator = fba.allocator();
 
     // pad day with 0 if needed
-    var path = try std.fmt.allocPrint(allocator, "../inputs/{:0>2}", .{day});
+    const path = try std.fmt.allocPrint(allocator, "../inputs/{:0>2}", .{day});
     defer allocator.free(path);
     return readFile(path, allocator);
 }
@@ -26,7 +26,6 @@ pub fn readDayInput(day: u32) ![]const u8 {
 pub fn NCoord(comptime dim: u32, comptime T: type) type {
     return @Vector(dim, T);
 }
-
 
 // Get the nth component of a vector, x y z w etc
 // v = NCoord(3, f32)
@@ -56,5 +55,5 @@ pub fn Grid(comptime T: type) type {
     return struct {
         const Self = @This();
         grid: []T,
-    }
+    };
 }

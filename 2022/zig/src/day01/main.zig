@@ -20,7 +20,7 @@ pub fn main() !void {
     // std.debug.print("PWD: {s}\n", .{try std.os.getcwd(&buf)});
 
     // get time
-    var start = std.time.microTimestamp();
+    const start = std.time.microTimestamp();
     var lines = std.mem.splitScalar(u8, (try util.readDayInput(1)), '\n');
     var best_of_three = [3]u32{ 0, 0, 0 };
 
@@ -30,7 +30,7 @@ pub fn main() !void {
             update_best_of_three(&best_of_three, current_sum);
             current_sum = 0;
         } else {
-            var value = try std.fmt.parseUnsigned(u32, line, 10);
+            const value = try std.fmt.parseUnsigned(u32, line, 10);
             current_sum += value;
         }
     }
@@ -51,7 +51,7 @@ test "day01" {
             }
             current_sum = 0;
         } else {
-            var value = try std.fmt.parseUnsigned(u32, line, 10);
+            const value = try std.fmt.parseUnsigned(u32, line, 10);
             current_sum += value;
         }
     }

@@ -2,15 +2,15 @@ const std = @import("std");
 const util = @import("util");
 
 pub fn rockPaperScissors1(line: *const [3]u8) u8 {
-    var opponent: u8 = line[0];
-    var you: u8 = line[2];
+    const opponent: u8 = line[0];
+    const you: u8 = line[2];
     return you - 'X' + 3 * ((you - opponent - 1) % 3) + 1;
 }
 
 pub fn rockPaperScissors2(line: *const [3]u8) u8 {
-    var opponent: u8 = line[0];
-    var you: u8 = line[2];
-    return 3 * (you - 'X') + ((you + opponent - 1) % 3 ) + 1;
+    const opponent: u8 = line[0];
+    const you: u8 = line[2];
+    return 3 * (you - 'X') + ((you + opponent - 1) % 3) + 1;
 }
 
 pub fn main() !void {
