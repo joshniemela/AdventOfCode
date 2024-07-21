@@ -21,7 +21,7 @@ pub fn build(b: *std.Build) void {
         const sourceDir = b.fmt("src/{s}", .{dayString});
         const sourceFile = b.fmt("{s}/main.zig", .{sourceDir});
         // If the sourceFile does not exist, then we skip
-        var cwd = std.fs.cwd().openDir(".", .{ .access_sub_paths = true }) catch {
+        var cwd = std.fs.cwd().openDir("./src", .{ .access_sub_paths = true }) catch {
             std.debug.print("Failed to open current directory\n", .{});
             continue;
         };
