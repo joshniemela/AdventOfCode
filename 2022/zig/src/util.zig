@@ -20,8 +20,6 @@ pub fn readDayInput(day: u32) ![]const u8 {
     return readFile(path, allocator);
 }
 
-// data structures
-
 // N-Dimensional vector with elements of type T
 pub fn NCoord(comptime dim: u32, comptime T: type) type {
     return @Vector(dim, T);

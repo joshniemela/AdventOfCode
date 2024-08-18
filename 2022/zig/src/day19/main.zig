@@ -1,5 +1,5 @@
 const std = @import("std");
-const util = @import("../util.zig");
+const util = @import("util");
 const Timer = std.time.Timer;
 
 const Resources = packed struct {
@@ -13,12 +13,25 @@ const Resources = packed struct {
 };
 
 const Blueprint = struct {
-    ore_bot_ore_cost: u8,
-    clay_bot_ore_cost: u8,
-    obsidian_bot_ore_cost: u8,
-    obsidian_bot_clay_cost: u8,
-    geode_bot_ore_cost: u8,
-    geode_bot_obsidian_cost: u8,
+    costs: [6]u8,
+    inline fn ore_bot_ore_cost(self: *const Blueprint) u8 {
+        return self.costs[0];
+    }
+    inline fn clay_bot_ore_cost(self: *const Blueprint) u8 {
+        return self.costs[1];
+    }
+    inline fn obsidian_bot_ore_cost(self: *const Blueprint) u8 {
+        return self.costs[2];
+    }
+    inline fn obsidian_bot_clay_cost(self: *const Blueprint) u8 {
+        return self.costs[3];
+    }
+    inline fn geode_bot_ore_cost(self: *const Blueprint) u8 {
+        return self.costs[4];
+    }
+    inline fn geode_bot_obsidian_cost(self: *const Blueprint) u8 {
+        return self.costs[5];
+    }
 };
 
 const MayBuild = struct {
@@ -30,12 +43,12 @@ const MayBuild = struct {
         var max_ore_cost: u8 = 0;
         var max_clay_cost: u8 = 0;
         var max_obsidian_cost: u8 = 0;
-        max_ore_cost = @max(max_ore_cost, bp.ore_bot_ore_cost);
-        max_ore_cost = @max(max_ore_cost, bp.clay_bot_ore_cost);
-        max_ore_cost = @max(max_ore_cost, bp.obsidian_bot_ore_cost);
-        max_ore_cost = @max(max_ore_cost, bp.geode_bot_ore_cost);
-        max_clay_cost = @max(max_clay_cost, bp.obsidian_bot_clay_cost);
-        max_obsidian_cost = @max(max_obsidian_cost, bp.geode_bot_obsidian_cost);
+        max_ore_cost = @max(max_ore_cost, bp.ore_bot_ore_cost());
+        max_ore_cost = @max(max_ore_cost, bp.clay_bot_ore_cost());
+        max_ore_cost = @max(max_ore_cost, bp.obsidian_bot_ore_cost());
+        max_ore_cost = @max(max_ore_cost, bp.geode_bot_ore_cost());
+        max_clay_cost = @max(max_clay_cost, bp.obsidian_bot_clay_cost());
+        max_obsidian_cost = @max(max_obsidian_cost, bp.geode_bot_obsidian_cost());
 
         return MayBuild{
             .max_ore_bots = max_ore_cost,
@@ -54,24 +67,24 @@ const State = struct {
     minutes: u8,
 
     fn can_build_ore_bot(self: State, bp: *const Blueprint) bool {
-        return self.resources.ore >= bp.ore_bot_ore_cost and
+        return self.resources.ore >= bp.ore_bot_ore_cost() and
             self.resources.ore_bots < self.buildable.max_ore_bots;
     }
 
     fn can_build_clay_bot(self: State, bp: *const Blueprint) bool {
-        return self.resources.ore >= bp.clay_bot_ore_cost and
+        return self.resources.ore >= bp.clay_bot_ore_cost() and
             self.resources.clay_bots < self.buildable.max_clay_bots;
     }
 
     fn can_build_obsidian_bot(self: State, bp: *const Blueprint) bool {
-        return self.resources.ore >= bp.obsidian_bot_ore_cost and
-            self.resources.clay >= bp.obsidian_bot_clay_cost and
+        return self.resources.ore >= bp.obsidian_bot_ore_cost() and
+            self.resources.clay >= bp.obsidian_bot_clay_cost() and
             self.resources.obsidian_bots < self.buildable.max_obsidian_bots;
     }
 
     fn can_build_geode_bot(self: State, bp: *const Blueprint) bool {
-        return self.resources.ore >= bp.geode_bot_ore_cost and
-            self.resources.obsidian >= bp.geode_bot_obsidian_cost;
+        return self.resources.ore >= bp.geode_bot_ore_cost() and
+            self.resources.obsidian >= bp.geode_bot_obsidian_cost();
     }
 
     fn build_ore_bot(self: State, bp: *const Blueprint, minutes_limit: u8) State {
@@ -84,7 +97,7 @@ const State = struct {
             }
         }
         new_state = new_state.step();
-        new_state.resources.ore -= bp.ore_bot_ore_cost;
+        new_state.resources.ore -= bp.ore_bot_ore_cost();
         new_state.resources.ore_bots += 1;
         return new_state;
     }
@@ -98,7 +111,7 @@ const State = struct {
             }
         }
         new_state = new_state.step();
-        new_state.resources.ore -= bp.clay_bot_ore_cost;
+        new_state.resources.ore -= bp.clay_bot_ore_cost();
         new_state.resources.clay_bots += 1;
         return new_state;
     }
@@ -112,8 +125,8 @@ const State = struct {
             }
         }
         new_state = new_state.step();
-        new_state.resources.ore -= bp.obsidian_bot_ore_cost;
-        new_state.resources.clay -= bp.obsidian_bot_clay_cost;
+        new_state.resources.ore -= bp.obsidian_bot_ore_cost();
+        new_state.resources.clay -= bp.obsidian_bot_clay_cost();
         new_state.resources.obsidian_bots += 1;
         return new_state;
     }
@@ -127,8 +140,8 @@ const State = struct {
             }
         }
         new_state = new_state.step();
-        new_state.resources.ore -= bp.geode_bot_ore_cost;
-        new_state.resources.obsidian -= bp.geode_bot_obsidian_cost;
+        new_state.resources.ore -= bp.geode_bot_ore_cost();
+        new_state.resources.obsidian -= bp.geode_bot_obsidian_cost();
         const time_left = minutes_limit - new_state.minutes;
         new_state.resources.geodes += time_left;
         return new_state;
@@ -181,32 +194,59 @@ pub fn solution(state: State, bp: *const Blueprint, minutes_limit: u8, best_geod
     return max_geodes;
 }
 
+fn find_next_digit(line: []const u8, start: usize) usize {
+    var i = start;
+    while (line[i] > '9' or line[i] < '0') {
+        i += 1;
+    }
+    return i;
+}
+
+fn parse_u8(line: []const u8, num: *u8, start: usize) usize {
+    // Parse a number from starting index and return the index after the number
+    var i = start;
+    while (line[i] >= '0' and line[i] <= '9') {
+        num.* = num.* * 10 + (line[i] - '0');
+        i += 1;
+    }
+    return i;
+}
+
+fn parse_line_to_blueprint(line: []const u8) !void {
+    var bp = Blueprint{
+        .costs = [6]u8{ 0, 0, 0, 0, 0, 0 },
+    };
+    // We can ignore everything that aren't numbers, the first number is the blueprint ID,
+    // the second is ore ore cost, third is clay ore cost, fourth is obsidain ore cost, fifth is obsidian clay cost,
+    // sixth is geode ore cost, seventh is geode obsidian cost
+    // We can assume that due to text, that we can start at index 16
+    var i: usize = 16;
+    var found: u8 = 0;
+    while (found < 6) {
+        i = find_next_digit(line, i);
+        i = parse_u8(line, &bp.costs[found], i);
+        found += 1;
+    }
+}
+
 pub fn main() !void {
-    // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
+    // give fixed size buffer allocator
+    var buf: [64 * 1024]u8 = undefined;
+    var fba = std.heap.FixedBufferAllocator.init(&buf);
+    const allocator = fba.allocator();
+    const input = try util.roeadFile("../inputs/19", allocator);
 
-    // stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
-    const stdout_file = std.io.getStdOut().writer();
-    var bw = std.io.bufferedWriter(stdout_file);
-    const stdout = bw.writer();
-
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
-
-    try bw.flush(); // don't forget to flush!
+    std.debug.print("{s}\n", .{input});
+    parse_line_to_blueprint(input) catch {
+        std.debug.print("Failed to parse line\n", .{});
+    };
 }
 
 test "test util" {
     var timer = try Timer.start();
 
     const testBlueprint = Blueprint{
-        .ore_bot_ore_cost = 4,
-        .clay_bot_ore_cost = 2,
-        .obsidian_bot_ore_cost = 3,
-        .obsidian_bot_clay_cost = 14,
-        .geode_bot_ore_cost = 2,
-        .geode_bot_obsidian_cost = 7,
+        .costs = [6]u8{ 4, 2, 3, 14, 2, 7 },
     };
     const expected = 9;
 
