@@ -22,11 +22,8 @@ where
     Ok((lefts, rights))
 }
 
-fn part1(mut lefts: [i32; 1000], mut rights: [i32; 1000]) -> i32 {
-    // Sort both arrays
-    lefts.sort_unstable();
-    rights.sort_unstable();
-
+// Precondition: lefts and rights are sorted
+fn part1(lefts: [i32; 1000], rights: [i32; 1000]) -> i32 {
     let mut diffs = 0;
     for (left, right) in lefts.iter().zip(rights.iter()) {
         diffs += (left - right).abs();
@@ -34,7 +31,42 @@ fn part1(mut lefts: [i32; 1000], mut rights: [i32; 1000]) -> i32 {
     diffs
 }
 
+// Precondition: lefts and rights are sorted
+fn part2(lefts: [i32; 1000], rights: [i32; 1000]) -> i32 {
+    let mut similarity_score = 0;
+
+    let mut left_index = 0;
+    let mut right_index = 0;
+
+    // Bounds check
+    while left_index < lefts.len() && right_index < rights.len() {
+        match lefts[left_index].cmp(&rights[right_index]) {
+            std::cmp::Ordering::Less => {
+                // Left is less than right
+                left_index += 1;
+            }
+            std::cmp::Ordering::Greater => {
+                // Right is less than left
+                right_index += 1;
+            }
+            std::cmp::Ordering::Equal => {
+                // We have a match
+                similarity_score += lefts[left_index];
+                right_index += 1;
+            }
+        }
+    }
+
+    similarity_score
+}
+
 fn main() {
-    let (lefts, rights) = read_input("../../../inputs/01").unwrap();
+    let (mut lefts, mut rights) = read_input("../../inputs/01").unwrap();
+    // Sort both arrays
+    lefts.sort_unstable();
+    rights.sort_unstable();
+
     println!("Part 1: {}", part1(lefts, rights));
+
+    println!("Part 2: {}", part2(lefts, rights));
 }
